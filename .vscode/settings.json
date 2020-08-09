@@ -1,0 +1,23 @@
+{
+    "Lua.diagnostics.globals": [
+        "game",
+        "CFrame",
+        "script",
+        "wait",
+        "Instance",
+        "UDim2",
+        "TweenInfo",
+        "Color3",
+        "Enum",
+        "tick",
+        "Vector3",
+        "getnamecallmethod",
+        "getrawmetatable",
+        "unpack",
+        "BrickColor",
+        "workspace",
+        "continue",
+        "Ray",
+        "typeof"
+    ]
+}

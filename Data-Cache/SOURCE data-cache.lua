@@ -145,7 +145,7 @@ function cache:num(label)
 	assert(dataTable~=nil, "Data doesn't exist in cache.")
 	local num = 0
 	for i, v in pairs(dataTable) do
-		num += 1
+		num = num + 1
 	end
 	return num
 end
