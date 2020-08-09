@@ -42,27 +42,15 @@ local rendered_bodyparts = {
 	["UpperTorso"] = true;
 }
 
---These are children instances that will not be cloned.
-local trash = {
-	["ModuleScript"] = true;
-	["Script"] = true;
-	["LocalScript"] = true;
-	["Frame"] = true;
-	["ScreenGui"] = true;
-	["TextButton"] = true;
-	["TextLabel"] = true;
-	["TextBox"] = true;
-	["ScrollingFrame"] = true;
-	["ViewportFrame"] = true;
-	["ClickDetector"] = true;
-	["Animation"] = true;
-	["ImageLabel"] = true;
-	["ImageButton"] = true;
-	["Camera"] = true;
-	["BillboardGui"] = true;
-	["SurfaceGui"] = true;
-	["Decal"] = true;
-}
+local function rename_similars(model)
+	for i, v in ipairs(model:GetChildren()) do
+		local equivalent = model:FindFirstChild(v.Name)
+		if equivalent and v ~= equivalent then
+			print("Renamed!")
+			model[v.Name].Name = v.Name..math.random(1, 100000000)..string.rep(math.random(1, 100), math.random(1, 5))
+		end
+	end
+end
 
 local function camera_render(camera, cloned_char, mode)
 	return RunService.RenderStepped:Connect(function(step)
@@ -70,10 +58,9 @@ local function camera_render(camera, cloned_char, mode)
 	end)
 end
 
---Remove unneccessary instances
 local function clean_up(object)
 	for _, v in ipairs(object:GetDescendants()) do
-		if trash[v.ClassName] then
+		if v:IsA("BaseScript") or v:IsA("GuiObject") or v:IsA("GuiBase2d") or v:IsA("ParticleEmitter") or v:IsA("Camera") or v:IsA("ValueBase") or v:IsA("Camera") then
 			v:Destroy()
 		end
 	end
@@ -186,8 +173,9 @@ function view:Enable(Mode)
 			local ray = Ray.new(self._character.HumanoidRootPart.Position, -self._character.HumanoidRootPart.CFrame.UpVector * 2)
 			local part = workspace:FindPartOnRay(ray, self._character)
 			if part then
-				local parent = part:FindFirstAncestorWhichIsA("Model")
+				local parent = part:FindFirstAncestorWhichIsA("Model", true);
 				if parent then
+					rename_similars(parent)
 					self._vehicle = parent:GetChildren()
 					self:LoadOnToView(self._vehicle)
 				end
@@ -237,7 +225,9 @@ function view:InitAddition() -- Internal use
 			local clone = v:Clone()
 			clean_up(clone)
 			self._clonedchar[v.Name] = clone
-			clone.Parent = clonedModel
+			pcall(function()
+				clone.Parent = clonedModel
+			end)
 		end
     	end
     	clonedModel.Parent = self._viewport
@@ -259,7 +249,7 @@ function view:TrackChanges() --Internal use
 	end
 	for i = 1, #self._updatechar do
 		local object = self._updatechar[i]
-		if object:IsA("BasePart") then
+		if object:IsA("BasePart") or object:IsA("UnionOperation") then
 			local event
 			event = RunService.Heartbeat:Connect(function()
 				if object then
@@ -342,23 +332,24 @@ end
 
 function view:LoadOnToView(tabl)
 	for _, v in ipairs(tabl) do
-		if self._viewport:FindFirstChild(v.Name) and self._viewport:FindFirstChildOfClass(v.ClassName) and (self._viewport[v.Name]:IsA("BasePart") or self._viewport[v.Name]:IsA("Decal")) then
+		if self._viewport:FindFirstChild(v.Name) and self._viewport:FindFirstChildOfClass(v.ClassName) and (self._viewport[v.Name]:IsA("BasePart") or self._viewport[v.Name]:IsA("Decal") or self._viewport[v.Name]:IsA("UnionOperation")) then
 			if self._viewport[v.Name].Transparency == 1 then
 				self._viewport[v.Name].Transparency = 0
 			end
 			continue
 		end
-		if v:IsA("BasePart") and not (v.Parent:IsA("Model") and v.Parent.PrimaryPart ~= nil and v.Parent.PrimaryPart == v) and v.Transparency == 1 then continue end
+		--if v:IsA("BasePart") and not (v.Parent:IsA("Model") and v.Parent.PrimaryPart ~= nil and v.Parent.PrimaryPart == v) and v.Transparency == 1 then continue end
 		if v:IsA("Light") then continue end
-        coroutine.wrap(function()
-            local decal = v:FindFirstChildWhichIsA("Decal", true)
-            if decal then
-                decal:Destroy()
-            end
-        end)
+	        coroutine.wrap(function()
+	            local decal = v:FindFirstChildWhichIsA("Decal", true)
+	            if decal then
+	                decal.Transparency = 0
+	            end
+	        end)()
 		local clone = v:Clone()
 		clean_up(clone)
 		clone.Parent = self._viewport
+		if clone:IsA("UnionOperation") then print("union of", clone, clone:GetFullName()) end
 		local event
 		event = RunService.Heartbeat:Connect(function()
 			if v then
@@ -373,14 +364,14 @@ end
 
 function view:UnLoadFromView(tabl)
 	for _, v in ipairs(tabl) do
-		if self._viewport:FindFirstChild(v.Name) and self._viewport:FindFirstChildOfClass(v.ClassName) and (self._viewport[v.Name]:IsA("BasePart") or self._viewport[v.Name]:IsA("Decal")) then
+		if self._viewport:FindFirstChild(v.Name) and self._viewport:FindFirstChildOfClass(v.ClassName) and (self._viewport[v.Name]:IsA("BasePart") or self._viewport[v.Name]:IsA("Decal") or self._viewport[v.Name]:IsA("UnionOperation")) then
 			if self._viewport[v.Name].Transparency == 0 then
 				self._viewport[v.Name]["Transparency"] = 1
 			end
 		end
 		if v:IsA("Light") then continue end
         coroutine.wrap(function()
-            local decal =  v:FindFirstChildWhichIsA("Decal", true)
+            local decal = v:FindFirstChildWhichIsA("Decal", true)
             if decal then
                 decal.Transparency = 1
             end
