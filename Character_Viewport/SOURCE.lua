@@ -4,6 +4,7 @@ view.__index = view
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
+
 local offsets = setmetatable({}, {
 	__call = function(_, mode, Chrt)
 		if mode:lower() == "front" then
@@ -42,6 +43,18 @@ local rendered_bodyparts = {
 	["UpperTorso"] = true;
 }
 
+--These are children instances that will not be cloned.
+local trash = {
+	["BaseScript"] = true;
+	["GuiBase"] = true;
+	["GuiObject"] = true;
+	["ClickDetector"] = true;
+	["Animation"] = true;
+	["Camera"] = true;
+	["ValueBase"] = true;
+	["Configuration"] = true;
+}
+
 local function rename_similars(model)
 	for i, v in ipairs(model:GetChildren()) do
 		local equivalent = model:FindFirstChild(v.Name)
@@ -60,7 +73,7 @@ end
 
 local function clean_up(object)
 	for _, v in ipairs(object:GetDescendants()) do
-		if v:IsA("BaseScript") or v:IsA("GuiObject") or v:IsA("GuiBase2d") or v:IsA("ParticleEmitter") or v:IsA("Camera") or v:IsA("ValueBase") or v:IsA("Camera") then
+		if v:IsA("BaseScript") or v:IsA("GuiObject") or v:IsA("GuiBase2d") or v:IsA("ParticleEmitter") or v:IsA("Camera") or v:IsA("ValueBase") or v:IsA("Camera") or v:IsA("Motor") or v:IsA("Weld") then
 			v:Destroy()
 		end
 	end
@@ -80,6 +93,7 @@ local function view_ui(viewport_frame, data)
 end
 
 function view.new(data, char)
+	wait(2) --Important for waiting for the character to load at least its body parts.
 	if not data:IsA("ViewportFrame") then --If not passed already-made viewport frame, checks if you instead passed the Position and Size parameters in the data list
 		assert(data.Size and typeof(data.Size) == "UDim2")
 		assert(data.Position and typeof(data.Position) == "UDim2")
@@ -93,6 +107,7 @@ function view.new(data, char)
 		screenGui.Parent = player:WaitForChild("PlayerGui")
 		self._viewport = Instance.new("ViewportFrame", screenGui)
 	end
+    self._backups = {}
 	self._character = char
 	self._data = data
 	self._clonedchar = {}
@@ -115,6 +130,7 @@ local function disconnectAllEvents(tabl)
 end
 
 function view:Enable(Mode)
+    Mode = self._previousmode or Mode or "Front"
 	self._viewport:ClearAllChildren()
 	self._events = disconnectAllEvents(self._events)
 	self._clonedchar = {}
@@ -123,13 +139,17 @@ function view:Enable(Mode)
 	self._camera = Instance.new("Camera", self._viewport)
 	self:InitAddition()
 	self:TrackChanges()
+
 	view_ui(self._viewport, self._data)
+
 	self._viewport.CurrentCamera = self._camera
-	Mode = Mode or "Front"
-	self._events["Cam"] = camera_render(self._camera, self._clonedchar, self._previousmode or Mode)
+
+	self._events["Cam"] = camera_render(self._camera, self._clonedchar, Mode)
 	self._previousmode = Mode
+
 	local added
 	added = self._character.ChildAdded:Connect(function(child)
+		if not child:IsA("Accoutrement") then return end
 		self._clonedchar[child.Name] = child
 		local clone = child:Clone()
 		clean_up(clone)
@@ -139,9 +159,7 @@ function view:Enable(Mode)
 			if child then
 				for _, v in ipairs(clone:GetChildren()) do
 					if v:IsA("BasePart") then
-						pcall(function()
 							v.CFrame = child[v.Name].CFrame
-						end)
 					end
 				end
 			else
@@ -160,13 +178,14 @@ function view:Enable(Mode)
 			child_viewport:Destroy()
 		end
 	end)
-	
-	self._character:WaitForChild("Humanoid").Died:Connect(function()
+    local died
+	died = self._character:WaitForChild("Humanoid").Died:Connect(function()
 		self:Freeze()
 		removed:Disconnect()
 		added:Disconnect()
 	end)
-	
+	table.insert(self._events, died)
+
     --Minor support for vehicles
 	self._character:WaitForChild("Humanoid").StateChanged:Connect(function(old, new)
 		if new == Enum.HumanoidStateType.Seated then
@@ -177,6 +196,9 @@ function view:Enable(Mode)
 				if parent then
 					rename_similars(parent)
 					self._vehicle = parent:GetChildren()
+                    if not self._backups[parent.Parent.Name..parent.Name] then
+                        self._backups[parent.Parent.Name..parent.Name] = parent
+                    end
 					self:LoadOnToView(self._vehicle)
 				end
 			end
@@ -214,23 +236,15 @@ function view:InitAddition() -- Internal use
 		if v:IsA("Accessory") then 
 			repeat wait() until v:FindFirstChild("Handle") ~= nil	
 		 end
-		if (v.Archivable == false) then
-			v.Archivable = true
-			local clone = v:Clone()
-			clean_up(clone)
-			clone.Parent = clonedModel
-			self._clonedchar[v.Name] = clone
-			v.Archivable = false
-		else
-			local clone = v:Clone()
-			clean_up(clone)
-			self._clonedchar[v.Name] = clone
-			pcall(function()
-				clone.Parent = clonedModel
-			end)
-		end
-    	end
-    	clonedModel.Parent = self._viewport
+		local archivable = v.Archivable
+		v.Archivable = true
+		local clone = v:Clone()
+		clean_up(clone)
+		clone.Parent = clonedModel
+		self._clonedchar[v.Name] = clone
+		v.Archivable = archivable
+	end
+    clonedModel.Parent = self._viewport
 end
 
 function view:TrackChanges() --Internal use
@@ -303,93 +317,113 @@ function view:TrackChanges() --Internal use
 end
 
 function view:Update(object, property) --Internal use
-	pcall(function()
-		if object:IsA("Accessory") or object:IsA("Tool") then
-			if object:IsA("Tool") then print("updating wtf") end
-			self._clonedchar[object.Name].Handle[property] = object.Handle[property]
-		else
-			self._clonedchar[object.Name][property] = object[property]
-		end
-	end)
+	if object:IsA("Humanoid") then return end
+    if object:IsA("Accoutrement") then
+        self._clonedchar[object.Name].Handle[property] = object.Handle[property]
+    else
+        self._clonedchar[object.Name][property] = object[property]
+    end
 end
 
 function view:UpdateCustomLoaded(OriginalObject, ClonedObject, Property)
-	pcall(function()
+	if OriginalObject:IsA("BasePart") or OriginalObject:IsA("UnionOperation") then
 		ClonedObject[Property] = OriginalObject[Property]
-	end)
+	end
 end
 
 function view:ReloadAccessories()
 	local accessories = {}
-	for _, v in ipairs(self._character:GetChildren()) do
-		if v:IsA("Accessory") then
-			table.insert(accessories, v)
-			table.insert(self._updatechar, v)
+    local char_children = self._character:GetChildren()
+	for i = 1, #char_children do
+		if char_children[i]:IsA("Accessory") then
+			table.insert(accessories, char_children[i])
+			table.insert(self._updatechar, char_children[i])
 		end
 	end
-	return #accessories
 end
 
 function view:LoadOnToView(tabl)
-	for _, v in ipairs(tabl) do
-		if self._viewport:FindFirstChild(v.Name) and self._viewport:FindFirstChildOfClass(v.ClassName) and (self._viewport[v.Name]:IsA("BasePart") or self._viewport[v.Name]:IsA("Decal") or self._viewport[v.Name]:IsA("UnionOperation")) then
-			if self._viewport[v.Name].Transparency == 1 then
-				self._viewport[v.Name].Transparency = 0
-			end
-			continue
-		end
+    local backed_up = self._backups[tabl[1].Parent.Parent.Name..tabl[1].Parent.Name]
+    if typeof(backed_up) == "table" then
+        for i = 1, #backed_up do
+            if backed_up[i]:IsA("BasePart") or backed_up[i]:IsA("Decal") or backed_up[i]:IsA("UnionOperation") then
+                local new_transparency = (backed_up[i].Transparency == 0 and 1) or 0
+                backed_up[i].Transparency = new_transparency
+            end 
+        end
+        return
+    end
+    self._backups[tabl[1].Parent.Parent.Name..tabl[1].Parent.Name] = {}
+    coroutine.wrap(function()
+        for i = 1, #tabl do
+            for _, v in ipairs(tabl[i]:GetDescendants()) do
+                if v:IsA("Model") then
+                    v:Destroy()
+                end
+            end
+        end
+    end)()
+	for i = 1, #tabl do
+        if tabl[i]:IsA("Light") then continue end
+        if (tabl[i]:IsA("BasePart") or tabl[i]:IsA("Decal") or tabl[i]:IsA("UnionOperation")) and tabl[i].Transparency == 1 then continue end
+        --if tabl[i]:IsDescendantOf(self._viewport) and (tabl[i]:IsA("BasePart") or tabl[i]:IsA("UnionOperation") or tabl[i]:IsA("Decal")) then
+			--if self._viewport[tabl[i].Name].Transparency == 1 then
+			--	self._viewport[tabl[i].Name].Transparency = 0
+			--end
+		--	continue
+		--end
 		--if v:IsA("BasePart") and not (v.Parent:IsA("Model") and v.Parent.PrimaryPart ~= nil and v.Parent.PrimaryPart == v) and v.Transparency == 1 then continue end
-		if v:IsA("Light") then continue end
-	        coroutine.wrap(function()
-	            local decal = v:FindFirstChildWhichIsA("Decal", true)
-	            if decal then
-	                decal.Transparency = 0
-	            end
-	        end)()
-		local clone = v:Clone()
+		local clone = tabl[i]:Clone()
 		clean_up(clone)
 		clone.Parent = self._viewport
-		if clone:IsA("UnionOperation") then print("union of", clone, clone:GetFullName()) end
+        
+        table.insert(self._backups[tabl[1].Parent.Parent.Name..tabl[1].Parent.Name], clone)
 		local event
+        local object = tabl[i]
 		event = RunService.Heartbeat:Connect(function()
-			if v then
-				self:UpdateCustomLoaded(v, clone,"CFrame")
+			if object then
+				self:UpdateCustomLoaded(tabl[i], clone,"CFrame")
 			else
 				clone:Destroy()
 				event:Disconnect()
 			end
 		end)
+        table.insert(self._events, event)
 	end
 end
 
 function view:UnLoadFromView(tabl)
-	for _, v in ipairs(tabl) do
-		if self._viewport:FindFirstChild(v.Name) and self._viewport:FindFirstChildOfClass(v.ClassName) and (self._viewport[v.Name]:IsA("BasePart") or self._viewport[v.Name]:IsA("Decal") or self._viewport[v.Name]:IsA("UnionOperation")) then
-			if self._viewport[v.Name].Transparency == 0 then
-				self._viewport[v.Name]["Transparency"] = 1
-			end
-		end
-		if v:IsA("Light") then continue end
-        coroutine.wrap(function()
-            local decal = v:FindFirstChildWhichIsA("Decal", true)
-            if decal then
-                decal.Transparency = 1
+    local table_rel = self._backups[tabl[1].Parent.Parent.Name..tabl[1].Parent.Name]
+    if typeof(table_rel == "table") then
+        for i = 1, #table_rel do
+            if table_rel[i]:IsA("BasePart") or table_rel[i]:IsA("UnionOperation") or table_rel[i]:IsA("Decal") then
+                table_rel[i].Transparency = 1
             end
-        end)()
-	end
+        end
+        return
+    end
+
+	--for i = 1, #tabl do
+   --     if tabl[i]:IsA("Light") then continue end
+	--	if tabl[i]:IsDescendantOf(self._viewport) and (tabl[i]:IsA("BasePart") or tabl[i]:IsA("UnionOperation") or tabl[i]:IsA("Decal")) then
+	--		if self._viewport[tabl[i].Name].Transparency == 0 then
+--				self._viewport[tabl[i].Name].Transparency = 1
+	--		end
+	--	end
+	--end
 end
 
 function view:Destroy()
+    self:Disable()
 	self._viewport = nil
 	self._data = nil
 	self._clonedchar = nil
 	self._updatechar = nil
-	for _, v in pairs(self._events) do
-		v:Disconnect()
-	end
 	self._events = nil
 	self._camera = nil
 	self._previousmode = nil
+    self._vehicle = nil
+    self._backups = nil
 end
 
 return view
