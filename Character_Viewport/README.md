@@ -10,9 +10,9 @@ This is a documentation written by fredrick254 on his data-cache module. This wa
 
 # Constructors
 
-## Viewer Character_Viewport.new([Table](https://developer.roblox.com/en-us/articles/Table) data)
+## Viewer Character_Viewport.new([Table](https://developer.roblox.com/en-us/articles/Table) data, [Model](https://developer.roblox.com/en-us/api-reference/class/Model) Character)
 
-##### The data parameter is required and has the following format
+##### All parameters are required. Character parameter is the loaded character model, data parameter has the following format
 
 ###### data = {[UDim2](https://developer.roblox.com/en-us/api-reference/datatype/UDim2) Position, [UDim2](https://developer.roblox.com/en-us/api-reference/datatype/UDim2) Size} or [ViewportFrame](https://developer.roblox.com/en-us/articles/viewportframe-gui) Viewport
 
