@@ -1,3 +1,5 @@
+Note that the example place is outdated and has not been updated since the first release, please check out the updated example place [here](https://www.roblox.com/games/5237850250/Character-Viewport-v1)
+
 # Roblox Character_Viewport (ALPHA)
 
 A Roblox module for viewing Roblox character on a viewport frame, where it auto-updates every frame and is somehow optimized for better performance.
