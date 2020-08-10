@@ -4,13 +4,15 @@ view.__index = view
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
+view.DistanceFromCharacter = 5
 
 local offsets = setmetatable({}, {
-	__call = function(_, mode, Chrt)
+	__call = function(_, mode, Chrt, distance)
+		distance = distance or view.DistanceFromCharacter
 		if mode:lower() == "front" then
-			return CFrame.new((Chrt.CFrame * CFrame.new(0, 0, -10 )).Position, Chrt.Position)
+			return CFrame.new((Chrt.CFrame * CFrame.new(0, 0, -distance)).Position, Chrt.Position)
 		elseif mode:lower() == "back" then
-			return CFrame.new((Chrt.CFrame * CFrame.new(0, 0, 10 )).Position, Chrt.Position)
+			return CFrame.new((Chrt.CFrame * CFrame.new(0, 0, distance )).Position, Chrt.Position)
 		elseif mode:lower() == "freecam" then
 			return Chrt.CFrame * player.Character.HumanoidRootPart.CFrame:ToObjectSpace(workspace.CurrentCamera.CFrame)
 		end
@@ -44,17 +46,6 @@ local rendered_bodyparts = {
 }
 
 --These are children instances that will not be cloned.
-local trash = {
-	["BaseScript"] = true;
-	["GuiBase"] = true;
-	["GuiObject"] = true;
-	["ClickDetector"] = true;
-	["Animation"] = true;
-	["Camera"] = true;
-	["ValueBase"] = true;
-	["Configuration"] = true;
-}
-
 local function rename_similars(model)
 	for i, v in ipairs(model:GetChildren()) do
 		local equivalent = model:FindFirstChild(v.Name)
