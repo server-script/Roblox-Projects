@@ -6,7 +6,7 @@ Welcome to the Character_Viewport wiki!
 
 # Documentation
 
-This is a documentation written by fredrick254 on his data-cache module. This was updated on 09/08/2020.
+This is a documentation written by fredrick254 on his Character_Viewport module. This was updated on 10/08/2020.
 
 # Constructors
 
