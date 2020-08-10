@@ -12,9 +12,9 @@ This is a documentation written by [fredrick254](https://www.roblox.com/users/47
 
 ## Viewer Character_Viewport.new([Table](https://developer.roblox.com/en-us/articles/Table) data | [ViewportFrame](https://developer.roblox.com/en-us/articles/viewportframe-gui) Viewport, [Model](https://developer.roblox.com/en-us/api-reference/class/Model) Character)
 
-##### All parameters are required. Character parameter is the loaded character model, data parameter has the following format
+##### All parameters are required. Character parameter is the loaded character model, [Table](https://developer.roblox.com/en-us/articles/Table) data parameter has the following format
 
-###### data = {[UDim2](https://developer.roblox.com/en-us/api-reference/datatype/UDim2) Position, [UDim2](https://developer.roblox.com/en-us/api-reference/datatype/UDim2) Size} or [ViewportFrame](https://developer.roblox.com/en-us/articles/viewportframe-gui) Viewport
+###### [Table](https://developer.roblox.com/en-us/articles/Table) = {[UDim2](https://developer.roblox.com/en-us/api-reference/datatype/UDim2) Position, [UDim2](https://developer.roblox.com/en-us/api-reference/datatype/UDim2) Size}
 
 Creates a new Viewer object, which represents a viewport frame wrapper. The data parameter could either have an already-made viewport frame, or a table in which you could specify a Position and Size parameter, where a new viewport frame will be automatically placed and background made transparent by default.
 
