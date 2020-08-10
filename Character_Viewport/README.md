@@ -10,7 +10,7 @@ This is a documentation written by [fredrick254](https://www.roblox.com/users/47
 
 # Constructors
 
-## Viewer Character_Viewport.new([Table](https://developer.roblox.com/en-us/articles/Table) data, [Model](https://developer.roblox.com/en-us/api-reference/class/Model) Character)
+## Viewer Character_Viewport.new([Table](https://developer.roblox.com/en-us/articles/Table) data | [ViewportFrame](https://developer.roblox.com/en-us/articles/viewportframe-gui) Viewport, [Model](https://developer.roblox.com/en-us/api-reference/class/Model) Character)
 
 ##### All parameters are required. Character parameter is the loaded character model, data parameter has the following format
 
