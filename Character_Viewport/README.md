@@ -6,7 +6,7 @@ Welcome to the Character_Viewport wiki!
 
 # Documentation
 
-This is a documentation written by fredrick254 on his Character_Viewport module. This was updated on 10/08/2020.
+This is a documentation written by [fredrick254](https://www.roblox.com/users/472224940/profile) on his Character_Viewport module. This was updated on 10/08/2020.
 
 # Constructors
 
