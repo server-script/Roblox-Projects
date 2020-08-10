@@ -149,7 +149,6 @@ function view:Enable(Mode)
 
 	local added
 	added = self._character.ChildAdded:Connect(function(child)
-		if not child:IsA("Accoutrement") then return end
 		self._clonedchar[child.Name] = child
 		local clone = child:Clone()
 		clean_up(clone)
