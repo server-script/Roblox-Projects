@@ -14,4 +14,11 @@ function RbxScriptConnection:Disconnect()
     self._parent._returnValue = nil
 end
 
+function RbxScriptConnection:_Destroy()
+    self.Connected = false
+    self.Connected = nil
+    self._parent = nil
+    self = nil
+end
+
 return RbxScriptConnection

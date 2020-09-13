@@ -35,4 +35,14 @@ function RbxScriptSignal:_Signal(...)
 	end
 end
 
+function RbxScriptSignal:_Destroy()
+	self._Connection:_Destroy()
+	self._Connection = nil
+	self._fired = nil
+	self._returnValue = nil
+	self._functions = nil
+	self._parent = nil
+	self = nil
+end
+
 return RbxScriptSignal
