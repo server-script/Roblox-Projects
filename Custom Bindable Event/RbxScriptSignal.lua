@@ -1,13 +1,13 @@
 local RbxScriptSignal = {}
+RbxScriptSignal.__index = RbxScriptSignal
 
 local RbxScriptConnection = require(script.Parent.RbxScriptConnection)
 
-function RbxScriptSignal.new(parent)
-	local self = setmetatable({}, {__index = RbxScriptSignal})
+function RbxScriptSignal.new()
+	local self = setmetatable({}, RbxScriptSignal)
 	self._functions = {}
 	self._fired = false
 	self._returnValue = nil
-	self._parent = parent
 	self._Connection = RbxScriptConnection.new(self)
 	return self
 end
@@ -41,7 +41,6 @@ function RbxScriptSignal:_Destroy()
 	self._fired = nil
 	self._returnValue = nil
 	self._functions = nil
-	self._parent = nil
 	self = nil
 end
 

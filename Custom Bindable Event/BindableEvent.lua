@@ -1,12 +1,12 @@
 local Event = {}
-
+Event.__index = Event
 local RbxScriptSignal = require(script.RbxScriptSignal)
 
 function Event.new(customEventName)
 	customEventName = customEventName or "Event"
-	local self = setmetatable({}, {__index = Event})
+	local self = setmetatable({}, Event)
 	self._Name = customEventName
-	self[customEventName] = RbxScriptSignal.new(self)
+	self[customEventName] = RbxScriptSignal.new()
 	return self
 end
 

@@ -1,7 +1,7 @@
 local RbxScriptConnection = {}
-
+RbxScriptConnection.__index = RbxScriptConnection
 function RbxScriptConnection.new(parentSignal)
-	local self = setmetatable({}, {__index = RbxScriptConnection})
+	local self = setmetatable({}, RbxScriptConnection)
 	self.Connected = true
 	self._parent = parentSignal
 	return self
