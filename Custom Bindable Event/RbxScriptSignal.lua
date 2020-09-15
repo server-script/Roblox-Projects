@@ -19,6 +19,7 @@ function RbxScriptSignal:Connect(func)
 end
 
 function RbxScriptSignal:Wait()
+	--Will implement a proper wait later. Now, I cba
 	repeat
 		wait() 
 	until self._fired
