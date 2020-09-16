@@ -84,7 +84,6 @@ local function view_ui(viewport_frame, data)
 end
 
 function view.new(data, char)
-	wait(2) --Important for waiting for the character to load at least its body parts.
 	if not data:IsA("ViewportFrame") then --If not passed already-made viewport frame, checks if you instead passed the Position and Size parameters in the data list
 		assert(data.Size and typeof(data.Size) == "UDim2", "Data type error!")
 		assert(data.Position and typeof(data.Position) == "UDim2", "Data type error!")
