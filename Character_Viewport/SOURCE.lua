@@ -47,7 +47,7 @@ local rendered_bodyparts = {
 
 --These are children instances that will not be cloned.
 local function rename_similars(model)
-	for i, v in ipairs(model:GetChildren()) do
+	for _, v in ipairs(model:GetChildren()) do
 		local equivalent = model:FindFirstChild(v.Name)
 		if equivalent and v ~= equivalent then
 			print("Renamed!")
@@ -86,8 +86,8 @@ end
 function view.new(data, char)
 	wait(2) --Important for waiting for the character to load at least its body parts.
 	if not data:IsA("ViewportFrame") then --If not passed already-made viewport frame, checks if you instead passed the Position and Size parameters in the data list
-		assert(data.Size and typeof(data.Size) == "UDim2")
-		assert(data.Position and typeof(data.Position) == "UDim2")
+		assert(data.Size and typeof(data.Size) == "UDim2", "Data type error!")
+		assert(data.Position and typeof(data.Position) == "UDim2", "Data type error!")
 	end
 	local self = setmetatable({}, view)
 	if  data:IsA("ViewportFrame") then
@@ -96,7 +96,9 @@ function view.new(data, char)
 		local screenGui = Instance.new("ScreenGui")
 		screenGui.Name = "ViewCharacter.fr"
 		screenGui.Parent = player:WaitForChild("PlayerGui")
-		self._viewport = Instance.new("ViewportFrame", screenGui)
+		local viewPortFrame = Instance.new("ViewportFrame")
+		viewPortFrame.Parent = screenGui
+		self._viewport = viewPortFrame
 	end
     self._backups = {}
 	self._character = char
@@ -129,7 +131,7 @@ function view:Enable(Mode)
 	if self._camera then self._camera:Destroy() end
 	self._camera = Instance.new("Camera", self._viewport)
 	self:InitAddition()
-	self:TrackChanges()
+	self:_TrackChanges()
 
 	view_ui(self._viewport, self._data)
 
@@ -145,7 +147,7 @@ function view:Enable(Mode)
 		clean_up(clone)
 		clone.Parent = self._clonedchar["HumanoidRootPart"].Parent
 		local event
-		event = RunService.Heartbeat:Connect(function()
+		event = RunService.Stepped:Connect(function()
 			if child then
 				for _, v in ipairs(clone:GetChildren()) do
 					if v:IsA("BasePart") then
@@ -237,7 +239,7 @@ function view:InitAddition() -- Internal use
     clonedModel.Parent = self._viewport
 end
 
-function view:TrackChanges() --Internal use
+function view:_TrackChanges() --Internal use
 	for _, v in ipairs(self._character:GetChildren()) do
 		if (v:IsA("BasePart") and rendered_bodyparts[v.Name]) or v:IsA("Tool") or v:IsA("Humanoid") then
 			table.insert(self._updatechar, v)
@@ -255,7 +257,7 @@ function view:TrackChanges() --Internal use
 		local object = self._updatechar[i]
 		if object:IsA("BasePart") or object:IsA("UnionOperation") then
 			local event
-			event = RunService.Heartbeat:Connect(function()
+			event = RunService.Stepped:Connect(function()
 				if object then
 					self:Update(object, "CFrame")
 				else
@@ -285,7 +287,7 @@ function view:TrackChanges() --Internal use
 		elseif object:IsA("Accessory") or object:IsA("Tool") then
 			local event
 			if object:IsA("Accessory") then
-				event = RunService.Heartbeat:Connect(function()
+				event = RunService.Stepped:Connect(function()
 					if object then
 						self:Update(object, "CFrame")
 					else
@@ -293,7 +295,7 @@ function view:TrackChanges() --Internal use
 					end
 				end)
 			elseif object:IsA("Tool") then
-				event = RunService.Heartbeat:Connect(function()
+				event = RunService.Stepped:Connect(function()
 					if object then
 						self:Update(object, "CFrame")
 					else
@@ -333,7 +335,9 @@ function view:ReloadAccessories()
 end
 
 function view:LoadOnToView(tabl)
-    local backed_up = self._backups[tabl[1].Parent.Parent.Name..tabl[1].Parent.Name]
+	local index = tabl[1].Parent.Parent.Name..tabl[1].Parent.Name
+	local backed_up = self._backups[index]
+	
     if typeof(backed_up) == "table" then
         for i = 1, #backed_up do
             if backed_up[i]:IsA("BasePart") or backed_up[i]:IsA("Decal") or backed_up[i]:IsA("UnionOperation") then
@@ -343,36 +347,34 @@ function view:LoadOnToView(tabl)
         end
         return
     end
-    self._backups[tabl[1].Parent.Parent.Name..tabl[1].Parent.Name] = {}
-    coroutine.wrap(function()
-        for i = 1, #tabl do
-            for _, v in ipairs(tabl[i]:GetDescendants()) do
-                if v:IsA("Model") then
-                    v:Destroy()
-                end
-            end
-        end
-    end)()
-	for i = 1, #tabl do
-        if tabl[i]:IsA("Light") then continue end
-        if (tabl[i]:IsA("BasePart") or tabl[i]:IsA("Decal") or tabl[i]:IsA("UnionOperation")) and tabl[i].Transparency == 1 then continue end
-        --if tabl[i]:IsDescendantOf(self._viewport) and (tabl[i]:IsA("BasePart") or tabl[i]:IsA("UnionOperation") or tabl[i]:IsA("Decal")) then
-			--if self._viewport[tabl[i].Name].Transparency == 1 then
-			--	self._viewport[tabl[i].Name].Transparency = 0
-			--end
-		--	continue
-		--end
-		--if v:IsA("BasePart") and not (v.Parent:IsA("Model") and v.Parent.PrimaryPart ~= nil and v.Parent.PrimaryPart == v) and v.Transparency == 1 then continue end
-		local clone = tabl[i]:Clone()
+	self._backups[index] = {}
+	
+	spawn(function()
+		for _, object in ipairs(tabl) do
+			for _, obj in ipairs(object:GetDescendants()) do
+				if obj:IsA("Model") then
+					obj:Destroy()
+				end
+			end
+		end
+	end)
+	
+	for _, object in ipairs(tabl) do
+		if object:IsA("Light") then
+			continue
+		end
+		if (object:IsA("BasePart") or object:IsA("Decal") or object:IsA("UnionOperation")) and object.Transparency == 1 then
+			continue
+		end
+		local clone = object:Clone()
 		clean_up(clone)
 		clone.Parent = self._viewport
         
-        table.insert(self._backups[tabl[1].Parent.Parent.Name..tabl[1].Parent.Name], clone)
+        table.insert(self._backups[index], clone)
 		local event
-        local object = tabl[i]
-		event = RunService.Heartbeat:Connect(function()
+		event = RunService.Stepped:Connect(function()
 			if object then
-				self:UpdateCustomLoaded(tabl[i], clone,"CFrame")
+				self:UpdateCustomLoaded(object, clone,"CFrame")
 			else
 				clone:Destroy()
 				event:Disconnect()
@@ -384,23 +386,14 @@ end
 
 function view:UnLoadFromView(tabl)
     local table_rel = self._backups[tabl[1].Parent.Parent.Name..tabl[1].Parent.Name]
-    if typeof(table_rel == "table") then
-        for i = 1, #table_rel do
-            if table_rel[i]:IsA("BasePart") or table_rel[i]:IsA("UnionOperation") or table_rel[i]:IsA("Decal") then
-                table_rel[i].Transparency = 1
+    if typeof(table_rel) == "table" then
+		for _, object in ipairs(table_rel) do
+			if object:IsA("BasePart") or object:IsA("UnionOperation") or object:IsA("Decal") then
+                object.Transparency = 1
             end
-        end
+		end
         return
     end
-
-	--for i = 1, #tabl do
-   --     if tabl[i]:IsA("Light") then continue end
-	--	if tabl[i]:IsDescendantOf(self._viewport) and (tabl[i]:IsA("BasePart") or tabl[i]:IsA("UnionOperation") or tabl[i]:IsA("Decal")) then
-	--		if self._viewport[tabl[i].Name].Transparency == 0 then
---				self._viewport[tabl[i].Name].Transparency = 1
-	--		end
-	--	end
-	--end
 end
 
 function view:Destroy()
