@@ -1,9 +1,11 @@
 local cache = {}
 cache.__index = cache
 
+local bindableEventModule
+local Event = require(bindableEventModule)
+
 local function updateIndex(dictionary, index, newIndex)
 	assert(typeof(newIndex) == "string", "Index argument must be a string.")
-	local returnTable = {};
 	local valueToChange;
 	for i, v in pairs(dictionary) do
 		if i == index then
@@ -27,11 +29,9 @@ local function concatDictionaryList(superDictionary, subDictionary)
 	return superDictionary
 end
 
-cache.__newindex = function(t, k, v)
+cache.__newindex = function()
 	warn("Attempt to modify read-only Cache object")
 end
-
-local bind = Instance.new("BindableEvent")
 
 local function removeTableValue(dict, key)
 	local indices = {}
@@ -53,7 +53,15 @@ end
 function cache.new()
 	local self = setmetatable({}, cache)
 	rawset(self, "_storage", {})
-	rawset(self, "_Bindable", bind:Clone())
+	--Bindable Instantiations
+	rawset(self, "_AddedEvent", Event.new("Added"))
+	rawset(self, "_RemovedEvent", Event.new("Removed"))
+	rawset(self, "_UpdatedEvent", Event.new("Updated"))
+
+	--Events
+	rawset(self, "DataRemoved", rawget(self, "_RemovedEvent").Removed)
+	rawset(self, "DataAdded", rawget(self, "_AddedEvent").Added)
+	rawset(self, "Updated", rawget(self, "_UpdatedEvent").Updated)
 	return self
 end
 
@@ -62,21 +70,21 @@ function cache:addData(data) --has to be added as a table = {dataLabel, (info)..
 	local label = table.remove(data, 1)
 	if self._storage[label] ~= nil then
 		warn("Added data into existing data cache '"..label.."'")
-		rawget(self, "_Bindable"):Fire("added", data)
 		rawset(self._storage, label, concatDictionaryList(rawget(self._storage, label), data))
+		rawget(self, "_AddedEvent"):Fire(data)
 		return
 	end
-	rawget(self, "_Bindable"):Fire("added", data)
 	rawset(self._storage, label, data)
+	rawget(self, "_AddedEvent"):Fire(data)
 end
 
-function cache:removeData(label, key) --Only include 'key' if data was in array format
+function cache:removeData(label, key) --Only include 'key' if dsata was in array format
 	local dataPoolIntended = rawget(self._storage, label)
 	if key then
-		rawget(self, "_Bindable"):Fire("removed", dataPoolIntended[key])
+		rawget(self, "_RemovedEvent"):Fire(dataPoolIntended[key])
 		rawset(self._storage, label, removeTableValue(dataPoolIntended, key))
 	else
-		rawget(self, "_Bindable"):Fire("removed", label)
+		rawget(self, "_RemovedEvent"):Fire(label)
 		rawset(self._storage, label, nil)
 	end
 end
@@ -93,26 +101,11 @@ end
 
 function cache:updateData(label, key, value)
 	rawset(self._storage[label], key, value)
-end
-
-function cache:bindToAddedEvent(func)
-	rawget(self, "_Bindable").Event:Connect(function(comm, ...)
-		if comm == "added" then
-			func(...)
-		end
-	end)
+	rawget(self, "_UpdatedEvent"):Fire(self._storage[label][key], value)
 end
 
 function cache:updateDataIndex(label, index, newindex)
 	updateIndex(rawget(self._storage, label), index, newindex);
-end
-
-function cache:bindToRemoveEvent(func)
-	rawget(self, "_Bindable").Event:Connect(function(comm, ...)
-		if comm == "removed" then
-			func(...)
-		end
-	end)
 end
 
 function cache:serializeData()
